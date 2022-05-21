@@ -38,7 +38,7 @@ int main()
 	}
 
 	// create textures
-	// GLuint current_generation = LoadTexture("textures/current_generation.png");
+	// GLuint current_generation = LoadTexture("textures/first_generation.png");
 	GLuint current_generation = CreateEmptyTexture(sed.windowWidth, sed.windowHeight);
 	GLuint next_generation = CreateEmptyTexture(sed.windowWidth, sed.windowHeight);
 
