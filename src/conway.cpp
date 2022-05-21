@@ -15,16 +15,18 @@ int main()
 	// create shaders
 	std::string VertexShaderSource = LoadFile("shaders/vertex_shader.glsl");
 	std::string PixelShaderSource = LoadFile("shaders/pixel_shader.glsl");
-	std::string ComputeShaderSource = LoadFile("shaders/compute.glsl");
+	std::string ConwayeShaderSource = LoadFile("shaders/conway_shader.glsl");
+	std::string CopyShaderSource = LoadFile("shaders/copy_shader.glsl");
 
 	// load vertex and pixel shaders program
 	GLuint renderShader = CreateRenderShader(VertexShaderSource.c_str(), PixelShaderSource.c_str());
 
-	// load compute shader program
-	GLuint computeShader = CreateComputeShader(ComputeShaderSource.c_str());
+	// load compute shader programs
+	GLuint conwayShader = CreateComputeShader(ConwayeShaderSource.c_str());
+	GLuint copyShader = CreateComputeShader(CopyShaderSource.c_str());
 
 	// crash if shaders were not created
-	if (renderShader == 0 or computeShader == 0)
+	if (renderShader == 0 or conwayShader == 0 or copyShader == 0)
 	{
 		return 1;
 	}
@@ -58,39 +60,32 @@ int main()
 		if (!run)
 			break;
 
-		// compute shader pass
+		// conway shader pass
+		if (sys.frameIndex % 10 == 0)
 		{
 			// use compute shader
-			glUseProgram(computeShader);
+			glUseProgram(conwayShader);
 
 			// bind textures
 			glBindTexture(GL_TEXTURE_2D, current_generation);
-			// glBindTexture(GL_TEXTURE_2D, next_generation);
+			glBindTexture(GL_TEXTURE_2D, next_generation);
 
 			// bind images
-			glBindImageTexture(0, current_generation, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
-			// glBindImageTexture(1, next_generation, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
+			glBindImageTexture(0, current_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
+			glBindImageTexture(1, next_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 
-			int current_generation_location = glGetUniformLocation(computeShader, "current_generation");
+			int current_generation_location = glGetUniformLocation(conwayShader, "current_generation");
 			glUniform1i(current_generation_location, 0);
 
 			// set uniforms
-			// glUniform4fv(glGetUniformLocation(computeShader, "mouse"), 4, glm::value_ptr(sys.mousePosition));
-			// glUniform1i(glGetUniformLocation(computeShader, "radius_mouse"), 5);
+			glUniform4fv(glGetUniformLocation(conwayShader, "mouse"), 4, glm::value_ptr(sys.mousePosition));
+			glUniform1i(glGetUniformLocation(conwayShader, "radius_mouse"), 5);
 
-			// set compute group to (32,32,1)
+			// launch computation with compute group to (32,32,1)
 			glDispatchCompute(32, 32, 1);
 
-			// pause CPU execution
+			// pause CPU execution until the image is closed
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-			// unbind images
-			glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
-			// glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
-
-			// unbind textures
-			glBindTexture(GL_TEXTURE_2D, 0);
-			// glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		// render shader pass
@@ -115,6 +110,26 @@ int main()
 			// bind to and draw geometry
 			glBindVertexArray(Quad_VAO);
 			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+
+		// copy shader pass
+		{
+			// use compute shader
+			glUseProgram(copyShader);
+
+			// bind textures
+			glBindTexture(GL_TEXTURE_2D, next_generation);
+			glBindTexture(GL_TEXTURE_2D, current_generation);
+
+			// bind images
+			glBindImageTexture(0, next_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
+			glBindImageTexture(1, current_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
+
+			// launch computation with compute group to (32,32,1)
+			glDispatchCompute(32, 32, 1);
+
+			// pause CPU execution until the image is closed
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
 		// update time
