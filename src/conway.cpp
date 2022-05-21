@@ -45,6 +45,9 @@ int main()
 	// create fps counter
 	float fps_counter = 0.;
 
+	// set update rate; which controls the number of frames between two computations
+	int update_rate = 60;
+
 	// begin the frame loop
 	SDL_Event event;
 	bool run = true;
@@ -61,7 +64,7 @@ int main()
 			break;
 
 		// conway shader pass
-		if (sys.frameIndex % 10 == 0)
+		if (sys.frameIndex != 0 && sys.frameIndex % update_rate == 0)
 		{
 			// use compute shader
 			glUseProgram(conwayShader);
@@ -74,12 +77,9 @@ int main()
 			glBindImageTexture(0, current_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 			glBindImageTexture(1, next_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 
-			int current_generation_location = glGetUniformLocation(conwayShader, "current_generation");
-			glUniform1i(current_generation_location, 0);
-
 			// set uniforms
-			glUniform4fv(glGetUniformLocation(conwayShader, "mouse"), 4, glm::value_ptr(sys.mousePosition));
-			glUniform1i(glGetUniformLocation(conwayShader, "radius_mouse"), 5);
+			// glUniform4fv(glGetUniformLocation(conwayShader, "mouse"), 4, glm::value_ptr(sys.mousePosition));
+			// glUniform1i(glGetUniformLocation(conwayShader, "radius_mouse"), 5);
 
 			// launch computation with compute group to (32,32,1)
 			glDispatchCompute(32, 32, 1);
@@ -113,6 +113,7 @@ int main()
 		}
 
 		// copy shader pass
+		if (sys.frameIndex != 0 && sys.frameIndex % update_rate == 0)
 		{
 			// use compute shader
 			glUseProgram(copyShader);
