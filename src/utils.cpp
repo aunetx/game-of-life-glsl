@@ -87,12 +87,6 @@ bool updateWithEvent(SDL_Event event, sedData &sed, sysData &sys)
         sys.mousePosition = glm::vec2(sed.mouseX / sed.windowWidth, 1.f - (sed.mouseY / sed.windowHeight));
         sys.mouse.x = event.motion.x / sed.windowWidth;
         sys.mouse.y = 1 - (event.motion.y / sed.windowHeight);
-
-        /*
-        cout << "mouse motion" << endl;
-        cout << sys.mouse.x << endl;
-        cout << sys.mouse.y << endl;
-        */
         return true;
     }
     else if (event.type == SDL_MOUSEBUTTONUP || event.type == SDL_MOUSEBUTTONDOWN)
@@ -101,14 +95,6 @@ bool updateWithEvent(SDL_Event event, sedData &sed, sysData &sys)
             sys.mouse.z = 0. + 1. * (event.button.state == SDL_PRESSED);
         else if (event.button.button == SDL_BUTTON_RIGHT)
             sys.mouse.w = 0. + 1. * (event.button.state == SDL_PRESSED);
-
-        /*
-        cout << "click" << endl;
-        cout << sys.mouse.x << endl;
-        cout << sys.mouse.y << endl;
-        cout << sys.mouse.z << endl;
-        cout << sys.mouse.w << endl;
-        */
         return true;
     }
     else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED)
