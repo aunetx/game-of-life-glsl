@@ -38,6 +38,7 @@ struct sysData
           timeDelta = 0.0f;
     uint frameIndex = 0;
     glm::vec2 mousePosition;
+    glm::vec4 mouse;
     glm::vec2 viewportSize;
     glm::mat4 view;
     glm::mat4 projection;
@@ -48,13 +49,20 @@ struct sysData
 };
 
 /// Create the initial system datas thanks to the windows datas.
-void initSysData(sysData sys, sedData sed)
+void initSysData(sysData &sys, sedData &sed, int window_width, int window_height)
 {
+    sed.windowWidth = window_width;
+    sed.windowHeight = window_height;
+
     sys.time = 0.0f;
     sys.timeDelta = 0.0f;
     sys.frameIndex = 0;
     sys.mousePosition.x = sed.mouseX;
     sys.mousePosition.y = sed.mouseY;
+    sys.mouse.x = sed.mouseX;
+    sys.mouse.y = sed.mouseY;
+    sys.mouse.z = 0.f;
+    sys.mouse.w = 0.f;
     sys.viewportSize.x = sed.windowWidth;
     sys.viewportSize.y = sed.windowHeight;
     sys.view = glm::mat4(-0.754709f, -0.277263f, 0.594591f, 0.000000f, -0.000000f, 0.906308f, 0.422618f, 0.000000f, -0.656059f, 0.318954f, -0.683999f, 0.000000f, -0.000001f, -0.000001f, -34.000000f, 1.000000f);
@@ -66,7 +74,7 @@ void initSysData(sysData sys, sedData sed)
 }
 
 /// Update the datas with the given event.
-bool updateWithEvent(SDL_Event event, sedData sed, sysData sys)
+bool updateWithEvent(SDL_Event event, sedData &sed, sysData &sys)
 {
     if (event.type == SDL_QUIT)
     {
@@ -77,6 +85,30 @@ bool updateWithEvent(SDL_Event event, sedData sed, sysData sys)
         sed.mouseX = event.motion.x;
         sed.mouseY = event.motion.y;
         sys.mousePosition = glm::vec2(sed.mouseX / sed.windowWidth, 1.f - (sed.mouseY / sed.windowHeight));
+        sys.mouse.x = event.motion.x / sed.windowWidth;
+        sys.mouse.y = 1 - (event.motion.y / sed.windowHeight);
+
+        /*
+        cout << "mouse motion" << endl;
+        cout << sys.mouse.x << endl;
+        cout << sys.mouse.y << endl;
+        */
+        return true;
+    }
+    else if (event.type == SDL_MOUSEBUTTONUP || event.type == SDL_MOUSEBUTTONDOWN)
+    {
+        if (event.button.button == SDL_BUTTON_LEFT)
+            sys.mouse.z = 0. + 1. * (event.button.state == SDL_PRESSED);
+        else if (event.button.button == SDL_BUTTON_RIGHT)
+            sys.mouse.w = 0. + 1. * (event.button.state == SDL_PRESSED);
+
+        /*
+        cout << "click" << endl;
+        cout << sys.mouse.x << endl;
+        cout << sys.mouse.y << endl;
+        cout << sys.mouse.z << endl;
+        cout << sys.mouse.w << endl;
+        */
         return true;
     }
     else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED)

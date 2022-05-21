@@ -5,6 +5,9 @@ layout(local_size_x = 8, local_size_y = 8) in;
 layout(r8, binding = 0) uniform image2D current_generation;
 layout(r8, binding = 1) uniform image2D next_generation;
 
+uniform vec4 mouse;
+uniform float radius_mouse = 5;
+
 ivec2 size = imageSize(current_generation);
 
 // get the corresponding pixel state on the game board
@@ -52,6 +55,18 @@ bool should_live(ivec2 pix_coord, bool alive, uint neighbours_nb) {
     return alive;
 }
 
+// pause the game if the left button is clicked, or
+bool is_paused() {
+    return mouse.z == 1;
+}
+
+bool is_placing_pixels(ivec2 pix_coord) {
+    // the distance from the mouse to the pixel
+    float dist_mouse = distance(mouse.xy, vec2(pix_coord) / size.x);
+
+    return dist_mouse < radius_mouse / size.x && is_paused();
+}
+
 void main() {
     ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -62,14 +77,16 @@ void main() {
     uint neighbours_nb = count_neighbours(pixel_coord);
 
     // update next state if not paused
-    alive = should_live(pixel_coord, alive, neighbours_nb);
+    if(!is_paused()) {
+        alive = should_live(pixel_coord, alive, neighbours_nb);
+    }
 
     // set pixel as alive (white) by default
     vec4 px = vec4(1);
 
     // if not alive, set red value to zero
     // if the mouse is placing the pixel, keep alive
-    if(!alive) {
+    if(!alive && !(is_placing_pixels(pixel_coord))) {
         px.r = 0;
     }
 

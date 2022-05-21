@@ -2,37 +2,44 @@
 
 int main()
 {
+	int window_width = 1000;
+	int window_height = 1000;
+	bool fullscreen = false;
+
 	// initial sed and sys (to store the system variables)
 	sedData sed = sedData{};
 	sysData sys = sysData{};
-	initSysData(sys, sed);
+	initSysData(sys, sed, window_width, window_height);
 
 	// initialize the window
 	glContextWindow context_window = InitWindow(sed.windowWidth, sed.windowHeight);
 	SDL_GLContext glContext = context_window.glContext;
 	SDL_Window *window = context_window.window;
 
+	// set window to fullscreen
+	if (fullscreen)
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+
 	// create shaders
 	std::string VertexShaderSource = LoadFile("shaders/vertex_shader.glsl");
 	std::string PixelShaderSource = LoadFile("shaders/pixel_shader.glsl");
 	std::string ConwayeShaderSource = LoadFile("shaders/conway_shader.glsl");
-	std::string CopyShaderSource = LoadFile("shaders/copy_shader.glsl");
 
 	// load vertex and pixel shaders program
 	GLuint renderShader = CreateRenderShader(VertexShaderSource.c_str(), PixelShaderSource.c_str());
 
-	// load compute shader programs
+	// load compute shader program
 	GLuint conwayShader = CreateComputeShader(ConwayeShaderSource.c_str());
-	GLuint copyShader = CreateComputeShader(CopyShaderSource.c_str());
 
 	// crash if shaders were not created
-	if (renderShader == 0 or conwayShader == 0 or copyShader == 0)
+	if (renderShader == 0 or conwayShader == 0)
 	{
 		return 1;
 	}
 
 	// create textures
-	GLuint current_generation = LoadTexture("textures/current_generation.png");
+	// GLuint current_generation = LoadTexture("textures/current_generation.png");
+	GLuint current_generation = CreateEmptyTexture(sed.windowWidth, sed.windowHeight);
 	GLuint next_generation = CreateEmptyTexture(sed.windowWidth, sed.windowHeight);
 
 	// create geometry
@@ -44,9 +51,6 @@ int main()
 
 	// create fps counter
 	float fps_counter = 0.;
-
-	// set update rate; which controls the number of frames between two computations
-	int update_rate = 60;
 
 	// begin the frame loop
 	SDL_Event event;
@@ -64,25 +68,20 @@ int main()
 			break;
 
 		// conway shader pass
-		if (sys.frameIndex != 0 && sys.frameIndex % update_rate == 0)
 		{
 			// use compute shader
 			glUseProgram(conwayShader);
-
-			// bind textures
-			glBindTexture(GL_TEXTURE_2D, current_generation);
-			glBindTexture(GL_TEXTURE_2D, next_generation);
 
 			// bind images
 			glBindImageTexture(0, current_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 			glBindImageTexture(1, next_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 
 			// set uniforms
-			// glUniform4fv(glGetUniformLocation(conwayShader, "mouse"), 4, glm::value_ptr(sys.mousePosition));
-			// glUniform1i(glGetUniformLocation(conwayShader, "radius_mouse"), 5);
+			glUniform4f(glGetUniformLocation(conwayShader, "mouse"), sys.mouse.x, sys.mouse.y, sys.mouse.z, sys.mouse.w);
+			glUniform1f(glGetUniformLocation(conwayShader, "radius_mouse"), 2.);
 
 			// launch computation with compute group to (32,32,1)
-			glDispatchCompute(32, 32, 1);
+			glDispatchCompute(window_width / 8, window_width / 8, 1);
 
 			// pause CPU execution until the image is closed
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -94,7 +93,10 @@ int main()
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-			glViewport(0, 0, sed.windowWidth * 2, sed.windowHeight * 2);
+			if (fullscreen)
+				glViewport(0, 0, sed.windowWidth, sed.windowHeight);
+			else
+				glViewport(0, 0, sed.windowWidth * 2, sed.windowHeight * 2);
 
 			// use render shader
 			glUseProgram(renderShader);
@@ -112,25 +114,9 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 		}
 
-		// copy shader pass
-		if (sys.frameIndex != 0 && sys.frameIndex % update_rate == 0)
+		// copy textures
 		{
-			// use compute shader
-			glUseProgram(copyShader);
-
-			// bind textures
-			glBindTexture(GL_TEXTURE_2D, next_generation);
-			glBindTexture(GL_TEXTURE_2D, current_generation);
-
-			// bind images
-			glBindImageTexture(0, next_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
-			glBindImageTexture(1, current_generation, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
-
-			// launch computation with compute group to (32,32,1)
-			glDispatchCompute(32, 32, 1);
-
-			// pause CPU execution until the image is closed
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			next_generation = current_generation;
 		}
 
 		// update time
