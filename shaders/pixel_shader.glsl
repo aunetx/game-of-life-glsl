@@ -9,5 +9,5 @@ out vec4 fragColor;
 void main() {
     // only the red color is important
     // we also set alpha to 1 to prevent problems
-    fragColor = vec4(texture(current_generation, outUV).rbg, 1);
+    fragColor = vec4(texture(current_generation, outUV).rgb, 1);
 }

@@ -1,12 +1,13 @@
 #version 460 core
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 8, local_size_y = 8) in;
 
-layout(r8, binding = 0) uniform image2D current_generation;
-layout(r8, binding = 1) uniform image2D next_generation;
+layout (r8, binding = 0) uniform image2D current_generation;
+layout (r8, binding = 1) uniform image2D next_generation;
 
 uniform vec4 mouse;
 uniform float radius_mouse = 5;
+uniform float time;
 
 ivec2 size = imageSize(current_generation);
 
@@ -42,12 +43,12 @@ uint count_neighbours(ivec2 pix_coord) {
 // compute the next state of the given pixel
 // we also give it the number of neighbours
 bool should_live(ivec2 pix_coord, bool alive, uint neighbours_nb) {
-    if(alive) {
-        if(neighbours_nb < 2 || neighbours_nb > 3) {
+    if (alive) {
+        if (neighbours_nb < 2 || neighbours_nb > 3) {
             alive = false;
         }
     } else {
-        if(neighbours_nb == 3) {
+        if (neighbours_nb == 3) {
             alive = true;
         }
     }
@@ -60,11 +61,15 @@ bool is_paused() {
     return mouse.z == 1;
 }
 
+float rand(vec2 co) {
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 bool is_placing_pixels(ivec2 pix_coord) {
     // the distance from the mouse to the pixel
     float dist_mouse = distance(mouse.xy, vec2(pix_coord) / size.x);
 
-    return dist_mouse < radius_mouse / size.x && is_paused();
+    return dist_mouse < radius_mouse / size.x && is_paused() && rand(fract(pix_coord * time)) > 0.95;
 }
 
 void main() {
@@ -77,7 +82,7 @@ void main() {
     uint neighbours_nb = count_neighbours(pixel_coord);
 
     // update next state if not paused
-    if(!is_paused()) {
+    if (!is_paused()) {
         alive = should_live(pixel_coord, alive, neighbours_nb);
     }
 
@@ -86,7 +91,7 @@ void main() {
 
     // if not alive, set red value to zero
     // if the mouse is placing the pixel, keep alive
-    if(!alive && !(is_placing_pixels(pixel_coord))) {
+    if (!alive && !(is_placing_pixels(pixel_coord))) {
         px.r = 0;
     }
 
