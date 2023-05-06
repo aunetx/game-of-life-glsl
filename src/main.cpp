@@ -26,8 +26,8 @@ using namespace std;
 
 int main()
 {
-	int original_window_width = 256;
-	int original_window_height = 256;
+	int original_window_width = 512;
+	int original_window_height = 512;
 	bool fullscreen = false;
 
 	// create the state of the machine
@@ -48,27 +48,27 @@ int main()
 	// create shaders
 	std::string VertexShaderSource = load_file("shaders/vertex_shader.glsl");
 	std::string PixelShaderSource = load_file("shaders/pixel_shader.glsl");
-	std::string ConwayeShaderSource = load_file("shaders/conway_shader.glsl");
+	std::string ComputeShaderSource =
+		load_file("shaders/compute/heat_shader.glsl");
 
 	// load vertex and pixel shaders program
 	GLuint renderShader = create_render_shader(VertexShaderSource.c_str(),
 											   PixelShaderSource.c_str());
 
 	// load compute shader program
-	GLuint conwayShader = create_compute_shader(ConwayeShaderSource.c_str());
+	GLuint computeShader = create_compute_shader(ComputeShaderSource.c_str());
 
 	// crash if shaders were not created
-	if (renderShader == 0 or conwayShader == 0) {
+	if (renderShader == 0 or computeShader == 0) {
 		return 1;
 	}
 
 	// create textures
-	// GLuint current_generation =
-	// load_texture("textures/first_generation.png");
 	GLuint current_generation =
-		create_empty_texture(state.window.x, state.window.y);
+		load_texture("textures/first_generation_512.png", GL_R32F);
+	GLuint material = load_texture("textures/material_512.png", GL_RGBA32F);
 	GLuint next_generation =
-		create_empty_texture(state.window.x, state.window.y);
+		create_empty_texture(state.window.x, state.window.y, GL_R32F);
 
 	// create geometry
 	GLuint Quad_VAO, Quad_VBO;
@@ -94,23 +94,29 @@ int main()
 		if (!run)
 			break;
 
-		// conway shader pass
-		{
+		// compute shader pass
+		for (size_t i = 0; i < 50; i++) {
 			// use compute shader
-			glUseProgram(conwayShader);
+			glUseProgram(computeShader);
 
 			// bind images
 			glBindImageTexture(0, current_generation, 0, GL_FALSE, 0,
-							   GL_READ_WRITE, GL_R8);
+							   GL_READ_WRITE, GL_R32F);
 			glBindImageTexture(1, next_generation, 0, GL_FALSE, 0,
-							   GL_READ_WRITE, GL_R8);
+							   GL_READ_WRITE, GL_R32F);
+			glBindImageTexture(2, material, 0, GL_FALSE, 0, GL_READ_ONLY,
+							   GL_RGBA32F);
 
 			// set uniforms
-			glUniform4f(glGetUniformLocation(conwayShader, "mouse"),
+			glUniform4f(glGetUniformLocation(computeShader, "mouse"),
 						state.mouse.x, state.mouse.y, state.mouse.z,
 						state.mouse.w);
-			glUniform1f(glGetUniformLocation(conwayShader, "radius_mouse"), 5.);
-			glUniform1f(glGetUniformLocation(conwayShader, "time"), state.time);
+			glUniform1f(glGetUniformLocation(computeShader, "radius_mouse"),
+						15.);
+			glUniform1f(glGetUniformLocation(computeShader, "time"),
+						state.time);
+			glUniform1f(glGetUniformLocation(computeShader, "dl"), 1.);
+			glUniform1f(glGetUniformLocation(computeShader, "dt"), 1.);
 
 			// launch computation with compute group to (32,32,1)
 			glDispatchCompute(original_window_width / 8,

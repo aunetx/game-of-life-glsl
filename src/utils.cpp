@@ -217,7 +217,7 @@ GLuint create_compute_shader(const char *csCode)
 	return computeShader;
 }
 
-GLuint load_texture(const std::string &file)
+GLuint load_texture(const std::string &file, uint format)
 {
 	int width, height, nrChannels;
 	unsigned char *data =
@@ -231,7 +231,7 @@ GLuint load_texture(const std::string &file)
 	glBindTexture(GL_TEXTURE_2D, ret);
 
 	glTexImage2D(GL_TEXTURE_2D, 0,
-				 GL_R8, // internal format
+				 format, // internal format
 				 width, height, 0,
 				 GL_RGB, // read format
 				 GL_UNSIGNED_BYTE, // type of values in read format
@@ -248,14 +248,14 @@ GLuint load_texture(const std::string &file)
 	return ret;
 }
 
-GLuint create_empty_texture(float width, float height)
+GLuint create_empty_texture(float width, float height, uint format)
 {
 	GLuint ret = 0;
 	glGenTextures(1, &ret);
 	glBindTexture(GL_TEXTURE_2D, ret);
 
 	glTexImage2D(GL_TEXTURE_2D, 0,
-				 GL_R8, // internal format
+				 format, // internal format
 				 width, height, 0,
 				 GL_RGBA, // read format
 				 GL_UNSIGNED_BYTE, // type of values in read format
